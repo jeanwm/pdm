@@ -48,7 +48,7 @@ public class MenuAdm extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Abre a ActivityFilmes
-                Intent intent = new Intent(MenuAdm.this, LocaisActivity.class);
+                Intent intent = new Intent(MenuAdm.this, LocalActivity.class);
                 startActivity(intent);
             }
         });

@@ -83,7 +83,7 @@ public class MenuAdmHelper {
     }
 
     // Método para cadastrar um local - CORRIGIDO
-    public static void cadastrarLocal(Context context, List<Local> listaDeLocais) {
+    public static void cadastrarLocal(Context context, List<LocalModel> listaDeLocais) {
         final EditText editTextBloco = new EditText(context);
         editTextBloco.setHint("Bloco (ex: A, B, C)");
 
@@ -114,7 +114,7 @@ public class MenuAdmHelper {
                 int sala = Integer.parseInt(salaStr);
 
                 // CORREÇÃO: A ordem dos parâmetros deve ser (sala, bloco)
-                Local local = new Local(sala, bloco);
+                LocalModel local = new LocalModel(sala, bloco);
                 listaDeLocais.add(local);
 
                 Toast.makeText(context, "Local cadastrado com sucesso!", Toast.LENGTH_SHORT).show();
@@ -128,8 +128,8 @@ public class MenuAdmHelper {
     }
 
     // Método para cadastrar uma sessão - CORRIGIDO
-    public static void cadastrarSessao(Context context, List<Sessao> listaDeSessoes,
-                                       List<FilmeModel> listaDeFilmes, List<Local> listaDeLocais) {
+    public static void cadastrarSessao(Context context, List<SessaoModel> listaDeSessoes,
+                                       List<FilmeModel> listaDeFilmes, List<LocalModel> listaDeLocais) {
         if (listaDeFilmes.isEmpty() || listaDeLocais.isEmpty()) {
             Toast.makeText(context, "Cadastre pelo menos um filme e um local antes!", Toast.LENGTH_LONG).show();
             return;
@@ -147,7 +147,7 @@ public class MenuAdmHelper {
         spinnerFilmes.setAdapter(adapterFilmes);
 
         Spinner spinnerLocais = new Spinner(context);
-        ArrayAdapter<Local> adapterLocais = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, listaDeLocais);
+        ArrayAdapter<LocalModel> adapterLocais = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, listaDeLocais);
         adapterLocais.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerLocais.setAdapter(adapterLocais);
 
@@ -177,10 +177,10 @@ public class MenuAdmHelper {
                 java.util.Date data = sdf.parse(dataStr);
 
                 FilmeModel filmeSelecionado = (FilmeModel) spinnerFilmes.getSelectedItem();
-                Local localSelecionado = (Local) spinnerLocais.getSelectedItem();
+                LocalModel localSelecionado = (LocalModel) spinnerLocais.getSelectedItem();
 
                 // CORREÇÃO: Usar os IDs reais do filme e local
-                Sessao sessao = new Sessao(data, hora, localSelecionado.getId(), filmeSelecionado.getId());
+                SessaoModel sessao = new SessaoModel(data, hora, localSelecionado.getId(), filmeSelecionado.getId());
                 listaDeSessoes.add(sessao);
 
                 Toast.makeText(context, "Sessão cadastrada com sucesso!", Toast.LENGTH_SHORT).show();

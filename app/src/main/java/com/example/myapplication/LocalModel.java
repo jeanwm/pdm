@@ -1,84 +1,51 @@
 package com.example.myapplication;
 
 public class LocalModel {
-    private int id_filme;
-    private String titulo;
-    private int genero;
-    private int duracao;
-    private int classificacao;
+    private int id_local;
+    private int sala;
+    private String bloco;
 
-    // Construtor corrigido
-    public LocalModel(String titulo, int genero, int duracao, int classificacao) {
-        this.titulo = titulo;
-        this.genero = genero;
-        this.duracao = duracao;
-        this.classificacao = classificacao;
+    public LocalModel(int sala, String bloco) {
+        this.sala = sala;
+        this.bloco = bloco;
     }
 
-    // Construtor adicional com ID
-    public LocalModel(int id_filme, String titulo, int genero, int duracao, int classificacao) {
-        this.id_filme = id_filme;
-        this.titulo = titulo;
-        this.genero = genero;
-        this.duracao = duracao;
-        this.classificacao = classificacao;
+    public LocalModel(int id_local, int sala, String bloco) {
+        this.id_local = id_local;
+        this.sala = sala;
+        this.bloco = bloco;
     }
 
     public int getId() {
-        return id_filme;
+        return id_local;
     }
 
-    public void setId(int id) {
-        this.id_filme = id;
+    public void setId(int id_local) {
+        this.id_local = id_local;
     }
 
-    public String getTitulo() {
-        return titulo;
+    public int getSala() {
+        return sala;
     }
 
-    public void setTitulo(String titulo) {
-        this.titulo = titulo;
+    public void setSala(int sala) {
+        this.sala = sala;
     }
 
-    public int getGenero() {
-        return genero;
+    public String getBloco() {
+        return bloco;
     }
 
-    public void setGenero(int genero) {
-        this.genero = genero;
-    }
-
-    public int getDuracao() {
-        return duracao;
-    }
-
-    public void setDuracao(int duracao) {
-        this.duracao = duracao;
-    }
-
-    public int getClassificacao() {
-        return classificacao;
-    }
-
-    public void setClassificacao(int classificacao) {
-        this.classificacao = classificacao;
+    public void setBloco(String bloco) {
+        this.bloco = bloco;
     }
 
     @Override
     public String toString() {
-        return "Título: " + titulo +
-                " | Duração: " + duracao + "min" +
-                " | Classificação: " + classificacao + " anos";
+        return "Bloco: " + bloco + " | Sala: " + sala;
     }
 
-    public String exibirInfoFilme() {
-        // Método melhorado para mostrar o gênero como string
-        String[] generos = {"", "Ação", "Anime", "Comédia", "Drama", "Ficção Científica", "Romance", "Suspense", "Terror"};
-        String generoStr = (genero >= 1 && genero < generos.length) ? generos[genero] : "Desconhecido";
-
-        return "Título: " + titulo + "\n" +
-                "Gênero: " + generoStr + "\n" +
-                "Duração: " + duracao + " minutos\n" +
-                "Classificação: " + classificacao + " anos";
+    public String exibirInfoLocal() {
+        return "Bloco: " + bloco + " | Sala: " + sala;
     }
 }
