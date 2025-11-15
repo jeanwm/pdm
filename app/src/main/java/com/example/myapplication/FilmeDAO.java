@@ -1,20 +1,24 @@
 package com.example.myapplication;
 
+import android.content.Context;
+import android.widget.Toast;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.JOptionPane;
 
 public class FilmeDAO {
+    private Context context;
 
-    public void cadastrarFilmeDAO(Filme filme) {
+    public FilmeDAO(Context context) {
+        this.context = context;
+    }
 
+    public void cadastrarFilme(FilmeModel filme) {
         if (isFilmeDuplicado(filme.getTitulo())) {
-            JOptionPane.showMessageDialog(null, "Filme já cadastrado. Filme não foi inserido.", "FILME",
-                    JOptionPane.ERROR_MESSAGE);
+            Toast.makeText(context, "Filme já cadastrado. Filme não foi inserido.", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -29,18 +33,14 @@ public class FilmeDAO {
             ps.setInt(4, filme.getClassificacao());
 
             ps.execute();
-            JOptionPane.showMessageDialog(null, "Filme cadastrado com sucesso!", "FILME",
-                    JOptionPane.INFORMATION_MESSAGE);
-            ps.close();
+            Toast.makeText(context, "Filme cadastrado com sucesso!", Toast.LENGTH_LONG).show();
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, e);
-
+            Toast.makeText(context, "Erro ao cadastrar filme: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
-
     }
 
-    public void excluirFilmeDAO(Filme filme) {
+    public void excluirFilme(FilmeModel filme) {
         String sql = "DELETE FROM FILME WHERE TITULO = ?";
         try (Connection conn = Conexao.getConexao();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -49,19 +49,17 @@ public class FilmeDAO {
             int linhasAfetadas = ps.executeUpdate();
 
             if (linhasAfetadas > 0) {
-                JOptionPane.showMessageDialog(null, "Filme excluído com sucesso!");
+                Toast.makeText(context, "Filme excluído com sucesso!", Toast.LENGTH_LONG).show();
             } else {
-                JOptionPane.showMessageDialog(null, "Operação cancelada, nenhum filme excluído.", null,
-                        JOptionPane.ERROR_MESSAGE);
+                Toast.makeText(context, "Operação cancelada, nenhum filme excluído.", Toast.LENGTH_LONG).show();
             }
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Erro ao excluir filme do banco." + e, null, JOptionPane.ERROR_MESSAGE);
+            Toast.makeText(context, "Erro ao excluir filme: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
-
     }
 
-    public void atualizarFilmeDAO(Filme filme, String tituloAntigo) {
+    public void atualizarFilme(FilmeModel filme, String tituloAntigo) {
         String sql = "UPDATE FILME SET TITULO = ?, GENERO = ?, CLASSIFICACAO = ?, DURACAO = ? WHERE TITULO = ?";
 
         try (Connection conn = Conexao.getConexao();
@@ -76,15 +74,14 @@ public class FilmeDAO {
             int linhasAfetadas = ps.executeUpdate();
 
             if (linhasAfetadas > 0) {
-                JOptionPane.showMessageDialog(null, "Filme atualizado com sucesso!");
+                Toast.makeText(context, "Filme atualizado com sucesso!", Toast.LENGTH_LONG).show();
             } else {
-                JOptionPane.showMessageDialog(null, "Filme não encontrado.", null, JOptionPane.WARNING_MESSAGE);
+                Toast.makeText(context, "Filme não encontrado.", Toast.LENGTH_LONG).show();
             }
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Erro ao atualizar Filme!\n" + e, null, JOptionPane.ERROR_MESSAGE);
+            Toast.makeText(context, "Erro ao atualizar Filme: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
-
     }
 
     private boolean isFilmeDuplicado(String titulo) {
@@ -100,14 +97,13 @@ public class FilmeDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("Erro ao verificar filme: " + e.getMessage());
+            Toast.makeText(context, "Erro ao verificar filme: " + e.getMessage(), Toast.LENGTH_LONG).show();
             return false;
         }
-
     }
 
-    public List<Filme> listarFilmes() {
-        List<Filme> filmes = new ArrayList<>();
+    public List<FilmeModel> listarFilmes() {
+        List<FilmeModel> filmes = new ArrayList<>();
         String sql = "SELECT * FROM filme";
 
         try (Connection conn = Conexao.getConexao();
@@ -120,37 +116,34 @@ public class FilmeDAO {
                 int genero = rs.getInt("genero");
                 int duracao = rs.getInt("duracao");
                 int classificacao = rs.getInt("classificacao");
-                filmes.add(new Filme(id_filme, titulo, genero, duracao, classificacao));
+                filmes.add(new FilmeModel(id_filme, titulo, genero, duracao, classificacao));
             }
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Não há filmes cadastrados." + e);
+            Toast.makeText(context, "Erro ao listar filmes: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
 
         return filmes;
-
     }
 
     public String listarGenero(int id_filme) {
         String sql = "SELECT g.descricao FROM filme f JOIN genero g ON f.genero = g.id_genero WHERE f.id_filme = ?";
         String descricao = null;
-    
+
         try (Connection conn = Conexao.getConexao();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-    
-            ps.setInt(1, id_filme); 
+
+            ps.setInt(1, id_filme);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    descricao = rs.getString("descricao"); 
+                    descricao = rs.getString("descricao");
                 }
             }
-    
+
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Erro ao retornar gênero: " + e.getMessage());
+            Toast.makeText(context, "Erro ao retornar gênero: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
-    
+
         return descricao;
     }
-
-
 }
