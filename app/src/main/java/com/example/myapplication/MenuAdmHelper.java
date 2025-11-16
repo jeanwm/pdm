@@ -12,8 +12,7 @@ import java.util.List;
 
 public class MenuAdmHelper {
 
-    // Método para cadastrar um filme - CORRIGIDO
-    public static void cadastrarFilme(Context context, List<Filme> listaDeFilmes) {
+    public static void cadastrarFilme(Context context, List<FilmeModel> listaDeFilmes) {
         // Criar os campos para entrada de dados
         final EditText editTextTitulo = new EditText(context);
         editTextTitulo.setHint("Título do filme");
@@ -68,7 +67,7 @@ public class MenuAdmHelper {
                     int generoSelecionado = spinnerGeneros.getSelectedItemPosition() + 1; // Gênero selecionado (1-8)
 
                     // Criar objeto Filme e adicionar à lista
-                    Filme filme = new Filme(titulo, generoSelecionado, duracao, classificacao);
+                    FilmeModel filme = new FilmeModel(titulo, generoSelecionado, duracao, classificacao);
                     listaDeFilmes.add(filme);
 
                     // Feedback para o usuário
@@ -84,7 +83,7 @@ public class MenuAdmHelper {
     }
 
     // Método para cadastrar um local - CORRIGIDO
-    public static void cadastrarLocal(Context context, List<Local> listaDeLocais) {
+    public static void cadastrarLocal(Context context, List<LocalModel> listaDeLocais) {
         final EditText editTextBloco = new EditText(context);
         editTextBloco.setHint("Bloco (ex: A, B, C)");
 
@@ -115,7 +114,7 @@ public class MenuAdmHelper {
                 int sala = Integer.parseInt(salaStr);
 
                 // CORREÇÃO: A ordem dos parâmetros deve ser (sala, bloco)
-                Local local = new Local(sala, bloco);
+                LocalModel local = new LocalModel(sala, bloco);
                 listaDeLocais.add(local);
 
                 Toast.makeText(context, "Local cadastrado com sucesso!", Toast.LENGTH_SHORT).show();
@@ -129,8 +128,8 @@ public class MenuAdmHelper {
     }
 
     // Método para cadastrar uma sessão - CORRIGIDO
-    public static void cadastrarSessao(Context context, List<Sessao> listaDeSessoes,
-                                       List<Filme> listaDeFilmes, List<Local> listaDeLocais) {
+    public static void cadastrarSessao(Context context, List<SessaoModel> listaDeSessoes,
+                                       List<FilmeModel> listaDeFilmes, List<LocalModel> listaDeLocais) {
         if (listaDeFilmes.isEmpty() || listaDeLocais.isEmpty()) {
             Toast.makeText(context, "Cadastre pelo menos um filme e um local antes!", Toast.LENGTH_LONG).show();
             return;
@@ -143,12 +142,12 @@ public class MenuAdmHelper {
         editTextHora.setHint("Hora (hh:mm)");
 
         Spinner spinnerFilmes = new Spinner(context);
-        ArrayAdapter<Filme> adapterFilmes = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, listaDeFilmes);
+        ArrayAdapter<FilmeModel> adapterFilmes = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, listaDeFilmes);
         adapterFilmes.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerFilmes.setAdapter(adapterFilmes);
 
         Spinner spinnerLocais = new Spinner(context);
-        ArrayAdapter<Local> adapterLocais = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, listaDeLocais);
+        ArrayAdapter<LocalModel> adapterLocais = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, listaDeLocais);
         adapterLocais.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerLocais.setAdapter(adapterLocais);
 
@@ -177,11 +176,11 @@ public class MenuAdmHelper {
                 java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
                 java.util.Date data = sdf.parse(dataStr);
 
-                Filme filmeSelecionado = (Filme) spinnerFilmes.getSelectedItem();
-                Local localSelecionado = (Local) spinnerLocais.getSelectedItem();
+                FilmeModel filmeSelecionado = (FilmeModel) spinnerFilmes.getSelectedItem();
+                LocalModel localSelecionado = (LocalModel) spinnerLocais.getSelectedItem();
 
                 // CORREÇÃO: Usar os IDs reais do filme e local
-                Sessao sessao = new Sessao(data, hora, localSelecionado.getId(), filmeSelecionado.getId());
+                SessaoModel sessao = new SessaoModel(data, hora, localSelecionado.getId(), filmeSelecionado.getId());
                 listaDeSessoes.add(sessao);
 
                 Toast.makeText(context, "Sessão cadastrada com sucesso!", Toast.LENGTH_SHORT).show();
@@ -195,14 +194,14 @@ public class MenuAdmHelper {
     }
 
     // Método para listar filmes
-    public static void listarFilmes(Context context, List<Filme> listaDeFilmes) {
+    public static void listarFilmes(Context context, List<FilmeModel> listaDeFilmes) {
         if (listaDeFilmes.isEmpty()) {
             Toast.makeText(context, "Não há filmes cadastrados!", Toast.LENGTH_SHORT).show();
             return;
         }
 
         StringBuilder filmesListados = new StringBuilder("Filmes cadastrados:\n\n");
-        for (Filme filme : listaDeFilmes) {
+        for (FilmeModel filme : listaDeFilmes) {
             filmesListados.append(filme.exibirInfoFilme()).append("\n\n");
         }
 

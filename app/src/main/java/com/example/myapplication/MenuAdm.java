@@ -12,9 +12,9 @@ import java.util.List;
 public class MenuAdm extends AppCompatActivity {
 
     // Listas para armazenar os dados (em uma aplicação real, isso viria de um banco de dados)
-    private List<Filme> listaDeFilmes;
-    private List<Local> listaDeLocais;
-    private List<Sessao> listaDeSessoes;
+    private List<FilmeModel> listaDeFilmes;
+    private List<LocalModel> listaDeLocais;
+    private List<SessaoModel> listaDeSessoes;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,8 +36,9 @@ public class MenuAdm extends AppCompatActivity {
         btnGerFilmes.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Usar o método estático para cadastrar filme
-                MenuAdmHelper.cadastrarFilme(MenuAdm.this, listaDeFilmes);
+                // Abre a ActivityFilmes
+                Intent intent = new Intent(MenuAdm.this, FilmeActivity.class);
+                startActivity(intent);
             }
         });
 
@@ -46,8 +47,9 @@ public class MenuAdm extends AppCompatActivity {
         btnGerLocais.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Usar o método estático para cadastrar local
-                MenuAdmHelper.cadastrarLocal(MenuAdm.this, listaDeLocais);
+                // Abre a ActivityFilmes
+                Intent intent = new Intent(MenuAdm.this, LocalActivity.class);
+                startActivity(intent);
             }
         });
 
@@ -56,16 +58,9 @@ public class MenuAdm extends AppCompatActivity {
         btnGerSessoes.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Verificar se há filmes e locais cadastrados antes de permitir criar sessões
-                if (listaDeFilmes.isEmpty() || listaDeLocais.isEmpty()) {
-                    Toast.makeText(MenuAdm.this,
-                            "Cadastre pelo menos um filme e um local antes de criar sessões!",
-                            Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                // Usar o método estático para cadastrar sessão
-                MenuAdmHelper.cadastrarSessao(MenuAdm.this, listaDeSessoes, listaDeFilmes, listaDeLocais);
+                // Abre a ActivityFilmes
+                Intent intent = new Intent(MenuAdm.this, SessaoActivity.class);
+                startActivity(intent);
             }
         });
 
@@ -83,15 +78,15 @@ public class MenuAdm extends AppCompatActivity {
     }
 
     // Métodos para obter as listas (podem ser usados por outras atividades)
-    public List<Filme> getListaDeFilmes() {
+    public List<FilmeModel> getListaDeFilmes() {
         return listaDeFilmes;
     }
 
-    public List<Local> getListaDeLocais() {
+    public List<LocalModel> getListaDeLocais() {
         return listaDeLocais;
     }
 
-    public List<Sessao> getListaDeSessoes() {
+    public List<SessaoModel> getListaDeSessoes() {
         return listaDeSessoes;
     }
 }

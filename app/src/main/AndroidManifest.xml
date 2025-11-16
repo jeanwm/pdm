@@ -14,16 +14,25 @@
         tools:targetApi="31">
 
         <activity
-            android:name=".Filme"
-            android:exported="false"
-            android:label="Gerenciar Filmes"
-            android:theme="@style/Theme.AppCompat.Light.DarkActionBar"/>
-
-        <activity
             android:name=".MenuAdm"
             android:exported="false"
             android:label="Menu Administrativo"
             android:theme="@style/Theme.AppCompat.Light.DarkActionBar"/>
+
+        <activity
+            android:name=".FilmeActivity"
+            android:exported="false"
+            android:label="Gerenciar Filmes" />
+
+        <activity
+            android:name=".LocalActivity"
+            android:exported="false"
+            android:label="Gerenciar Filmes" />
+
+        <activity
+            android:name=".SessaoActivity"
+            android:exported="false"
+            android:label="Gerenciar Filmes" />
 
         <activity
             android:name=".activities.CrudSessaoActivity"
