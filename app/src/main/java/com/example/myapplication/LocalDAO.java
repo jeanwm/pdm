@@ -1,107 +1,106 @@
 package com.example.myapplication;
 
+import android.content.Context;
+import android.widget.Toast;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.JOptionPane;
 
 public class LocalDAO {
+    private Context context;
 
-    public void cadastrarLocalDAO(Local local) {
-
+    public LocalDAO(Context context) {
+        this.context = context;
+    }
+    public long cadastrarLocal(LocalModel local) {
         if (isLocalDuplicado(local.getSala(), local.getBloco())) {
-            JOptionPane.showMessageDialog(null, "Local já cadastrado. Local não foi inserido.", "LOCAL",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
+            Toast.makeText(context, "Local já cadastrado", Toast.LENGTH_SHORT).show();
+            return -1;
         }
 
-        String sql = "INSERT INTO LOCAL (SALA, BLOCO) VALUES (?, ?)";
+        /*ContentValues values = new ContentValues();
+        values.put("SALA", local.getSala());
+        values.put("BLOCO", local.getBloco());
 
-        try (Connection conn = Conexao.getConexao();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        long resultado = db.insert("LOCAL", null, values);
 
-            ps.setInt(1, local.getSala());
-            ps.setString(2, local.getBloco());
-
-            ps.execute();
-            JOptionPane.showMessageDialog(null, "Local cadastrado com sucesso!", "LOCAL",
-                    JOptionPane.INFORMATION_MESSAGE);
-            ps.close();
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, e);
-
+        if (resultado != -1) {
+            Toast.makeText(context, "Local cadastrado com sucesso!", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "Erro ao cadastrar local", Toast.LENGTH_SHORT).show();
         }
 
+        return resultado;*/
+        return 0;
     }
 
-    public void excluirLocalDAO(Local local) {
-        String sql = "DELETE FROM LOCAL WHERE SALA = ? AND BLOCO = ?";
-        try (Connection conn = Conexao.getConexao();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+    public int excluirLocal(int sala, String bloco) {
+        /*int linhasAfetadas = db.delete("LOCAL", "SALA = ? AND BLOCO = ?",
+                new String[]{String.valueOf(sala), bloco});
 
-            ps.setInt(1, local.getSala());
-            ps.setString(2, local.getBloco());
-
-            int linhasAfetadas = ps.executeUpdate();
-
-            if (linhasAfetadas > 0) {
-                JOptionPane.showMessageDialog(null, "Local excluído com sucesso!");
-            } else {
-                JOptionPane.showMessageDialog(null, "Operação cancelada, nenhum local excluído.", null,
-                        JOptionPane.ERROR_MESSAGE);
-            }
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Erro ao excluir local do banco." + e, null, JOptionPane.ERROR_MESSAGE);
+        if (linhasAfetadas > 0) {
+            Toast.makeText(context, "Local excluído com sucesso!", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "Local não encontrado", Toast.LENGTH_SHORT).show();
         }
 
+        return linhasAfetadas;*/
+        return 0;
     }
 
     private boolean isLocalDuplicado(int sala, String bloco) {
-        String sql = "SELECT * FROM LOCAL WHERE SALA = ? AND BLOCO = ?";
+        /*Cursor cursor = db.query("LOCAL",
+                new String[]{"SALA", "BLOCO"},
+                "SALA = ? AND BLOCO = ?",
+                new String[]{String.valueOf(sala), bloco},
+                null, null, null);
 
-        try (Connection conn = Conexao.getConexao();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, sala);
-            ps.setString(2, bloco);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Erro ao verificar local: " + e.getMessage());
-            return false;
-        }
-
+        boolean existe = cursor.getCount() > 0;
+        cursor.close();
+        return existe;*/
+        return false;
     }
 
-    public List<Local> listarLocais() {
-        List<Local> locais = new ArrayList<>();
-        String sql = "SELECT * FROM LOCAL";
+    public List<LocalModel> listarLocais() {
+        /*List<LocalModel> locais = new ArrayList<>();
+        Cursor cursor = db.query("LOCAL", null, null, null, null, null, null);
 
-        try (Connection conn = Conexao.getConexao();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        while (cursor.moveToNext()) {
+            int id_local = cursor.getInt(cursor.getColumnIndexOrThrow("id_local"));
+            int sala = cursor.getInt(cursor.getColumnIndexOrThrow("sala"));
+            String bloco = cursor.getString(cursor.getColumnIndexOrThrow("bloco"));
 
-            while (rs.next()) {
-                int id_local = rs.getInt("id_local");
-                int sala = rs.getInt("sala");
-                String bloco = rs.getString("bloco");
-                locais.add(new Local(id_local, sala, bloco));
-            }
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Não há locais cadastrados." + e);
+            locais.add(new LocalModel(id_local, sala, bloco));
         }
 
-        return locais;
-
+        cursor.close();
+        return locais;*/
+        return null;
     }
 
+    // Método para buscar local por ID (útil para outras funcionalidades)
+    public LocalModel buscarLocalPorId(int id) {
+        /*Cursor cursor = db.query("LOCAL",
+                null,
+                "id_local = ?",
+                new String[]{String.valueOf(id)},
+                null, null, null);
+
+        LocalModel local = null;
+        if (cursor.moveToFirst()) {
+            int id_local = cursor.getInt(cursor.getColumnIndexOrThrow("id_local"));
+            int sala = cursor.getInt(cursor.getColumnIndexOrThrow("sala"));
+            String bloco = cursor.getString(cursor.getColumnIndexOrThrow("bloco"));
+
+            local = new LocalModel(id_local, sala, bloco);
+        }
+
+        cursor.close();
+        return local;*/
+
+        return null;
+    }
 }

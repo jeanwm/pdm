@@ -1,22 +1,22 @@
 package com.example.myapplication;
 
-public class Filme {
+public class FilmeModel {
     private int id_filme;
     private String titulo;
     private int genero;
     private int duracao;
     private int classificacao;
 
-    // Construtor corrigido - removido o parâmetro id_filme não utilizado
-    public Filme(String titulo, int genero, int duracao, int classificacao) {
+    // Construtor corrigido
+    public FilmeModel(String titulo, int genero, int duracao, int classificacao) {
         this.titulo = titulo;
         this.genero = genero;
         this.duracao = duracao;
         this.classificacao = classificacao;
     }
 
-    // Construtor adicional com ID (se necessário)
-    public Filme(int id_filme, String titulo, int genero, int duracao, int classificacao) {
+    // Construtor adicional com ID
+    public FilmeModel(int id_filme, String titulo, int genero, int duracao, int classificacao) {
         this.id_filme = id_filme;
         this.titulo = titulo;
         this.genero = genero;

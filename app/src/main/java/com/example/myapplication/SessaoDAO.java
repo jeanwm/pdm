@@ -1,136 +1,180 @@
 package com.example.myapplication;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.widget.Toast;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import javax.swing.JOptionPane;
+import java.util.Locale;
 
 public class SessaoDAO {
 
-    public void cadastrarSessaoDAO(Sessao sessao) {
+    private SQLiteDatabase db;
+    private Context context;
+    private static final String DATABASE_NAME = "cinema.db";
+    private static final int DATABASE_VERSION = 1;
+    private static final String TABLE_NAME = "SESSAO";
 
-        if (isSessaoDuplicada(sessao.getHora(), sessao.getLocal(), sessao.getData())) {
-            JOptionPane.showMessageDialog(null, "Sessão já cadastrada. Sessão não foi inserida.", "SESSÃO",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        String sql = "INSERT INTO SESSAO (DATA, HORA, FILME, LOCAL) VALUES (?, ?, ?, ?)";
-
-        try (Connection conn = Conexao.getConexao();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setDate(1, new java.sql.Date(sessao.getData().getTime()));
-            ps.setString(2, sessao.getHora());
-            ps.setInt(3, sessao.getFilme());
-            ps.setInt(4, sessao.getLocal());
-
-            ps.execute();
-            JOptionPane.showMessageDialog(null, "Sessão cadastrada com sucesso!", "SESSÃO",
-                    JOptionPane.INFORMATION_MESSAGE);
-            ps.close();
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, e);
-
-        }
-
+    public SessaoDAO(Context context) {
+        this.context = context;
+        openDatabase();
     }
 
-    public void excluirSessaoDAO(Sessao sessao) {
-        String sql = "DELETE FROM SESSAO WHERE id_sessao = ?";
-        try (Connection conn = Conexao.getConexao();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, sessao.getId());
-
-            int linhasAfetadas = ps.executeUpdate();
-
-            if (linhasAfetadas > 0) {
-                JOptionPane.showMessageDialog(null, "Sessão excluída com sucesso!");
-            } else {
-                JOptionPane.showMessageDialog(null, "Operação cancelada, nenhuma sessão excluída.", null,
-                        JOptionPane.ERROR_MESSAGE);
-            }
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Erro ao excluir sessão do banco." + e, null,
-                    JOptionPane.ERROR_MESSAGE);
+    private void openDatabase() {
+        try {
+            db = context.openOrCreateDatabase(DATABASE_NAME, Context.MODE_PRIVATE, null);
+            createTableIfNotExists();
+        } catch (Exception e) {
+            Toast.makeText(context, "Erro ao abrir banco de dados: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
-
     }
 
-    public void atualizarSessaoDAO(Sessao sessao) {
-        String sql = "UPDATE SESSAO SET DATA = ?, HORA = ? WHERE ID_SESSAO = ?";
-
-        try (Connection conn = Conexao.getConexao();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setDate(1, new java.sql.Date(sessao.getData().getTime()));
-            ps.setString(2, sessao.getHora());
-            ps.setInt(3, sessao.getId());
-
-            int linhasAfetadas = ps.executeUpdate();
-
-            if (linhasAfetadas > 0) {
-                JOptionPane.showMessageDialog(null, "Sessão atualizada com sucesso!");
-            } else {
-                JOptionPane.showMessageDialog(null, "Sessão não encontrada.", null, JOptionPane.WARNING_MESSAGE);
-            }
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Erro ao atualizar sessão!\n" + e, null, JOptionPane.ERROR_MESSAGE);
-        }
-
+    private void createTableIfNotExists() {
+        String createTable = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
+                "id_sessao INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "data TEXT NOT NULL, " +
+                "hora TEXT NOT NULL, " +
+                "filme INTEGER NOT NULL, " +
+                "local INTEGER NOT NULL);";
+        db.execSQL(createTable);
     }
 
-    private boolean isSessaoDuplicada(String hora, int local, Date data) {
-        String sql = "SELECT * FROM SESSAO WHERE HORA = ? AND LOCAL = ? AND DATA = ?";
-
-        try (Connection conn = Conexao.getConexao();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, hora);
-            ps.setInt(2, local);
-            ps.setDate(3, new java.sql.Date(data.getTime()));
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Erro ao verificar sessão: " + e.getMessage());
-            return false;
+    public long cadastrarSessao(SessaoModel sessao) {
+        if (isSessaoDuplicada(sessao.getHora(), sessao.getLocal(), sessao.getDataString())) {
+            Toast.makeText(context, "Sessão já cadastrada. Sessão não foi inserida.", Toast.LENGTH_SHORT).show();
+            return -1;
         }
 
+        ContentValues values = new ContentValues();
+        values.put("DATA", sessao.getDataString());
+        values.put("HORA", sessao.getHora());
+        values.put("FILME", sessao.getFilme());
+        values.put("LOCAL", sessao.getLocal());
+
+        long resultado = db.insert(TABLE_NAME, null, values);
+
+        if (resultado != -1) {
+            Toast.makeText(context, "Sessão cadastrada com sucesso!", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "Erro ao cadastrar sessão", Toast.LENGTH_SHORT).show();
+        }
+
+        return resultado;
     }
 
-    public List<Sessao> listarSessoes() {
-        List<Sessao> sessoes = new ArrayList<>();
-        String sql = "SELECT * FROM SESSAO";
+    public int excluirSessao(Date data, String hora, int local, int filme) {
+        String dataStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(data);
 
-        try (Connection conn = Conexao.getConexao();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        int linhasAfetadas = db.delete(TABLE_NAME,
+                "DATA = ? AND HORA = ? AND LOCAL = ? AND FILME = ?",
+                new String[]{dataStr, hora, String.valueOf(local), String.valueOf(filme)});
 
-            while (rs.next()) {
-                int id_sessao = rs.getInt("id_sessao");
-                Date data = rs.getDate("data");
-                String hora = rs.getString("hora");
-                int local = rs.getInt("local");
-                int filme = rs.getInt("filme");
-                sessoes.add(new Sessao(id_sessao, data, hora, local, filme));
+        if (linhasAfetadas > 0) {
+            Toast.makeText(context, "Sessão excluída com sucesso!", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "Operação cancelada, nenhuma sessão excluída.", Toast.LENGTH_SHORT).show();
+        }
+
+        return linhasAfetadas;
+    }
+
+    public int excluirSessaoPorId(int id_sessao) {
+        int linhasAfetadas = db.delete(TABLE_NAME, "id_sessao = ?", new String[]{String.valueOf(id_sessao)});
+
+        if (linhasAfetadas > 0) {
+            Toast.makeText(context, "Sessão excluída com sucesso!", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "Sessão não encontrada.", Toast.LENGTH_SHORT).show();
+        }
+
+        return linhasAfetadas;
+    }
+
+    public int atualizarSessao(SessaoModel sessao) {
+        ContentValues values = new ContentValues();
+        values.put("DATA", sessao.getDataString());
+        values.put("HORA", sessao.getHora());
+        values.put("FILME", sessao.getFilme());
+        values.put("LOCAL", sessao.getLocal());
+
+        int linhasAfetadas = db.update(TABLE_NAME, values, "id_sessao = ?",
+                new String[]{String.valueOf(sessao.getId())});
+
+        if (linhasAfetadas > 0) {
+            Toast.makeText(context, "Sessão atualizada com sucesso!", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "Sessão não encontrada.", Toast.LENGTH_SHORT).show();
+        }
+
+        return linhasAfetadas;
+    }
+
+    private boolean isSessaoDuplicada(String hora, int local, String data) {
+        Cursor cursor = db.query(TABLE_NAME,
+                new String[]{"hora", "local", "data"},
+                "HORA = ? AND LOCAL = ? AND DATA = ?",
+                new String[]{hora, String.valueOf(local), data},
+                null, null, null);
+
+        boolean existe = cursor.getCount() > 0;
+        cursor.close();
+        return existe;
+    }
+
+    public List<SessaoModel> listarSessoes() {
+        List<SessaoModel> sessoes = new ArrayList<>();
+        Cursor cursor = db.query(TABLE_NAME, null, null, null, null, null, null);
+
+        try {
+            while (cursor.moveToNext()) {
+                int id_sessao = cursor.getInt(cursor.getColumnIndexOrThrow("id_sessao"));
+                String dataStr = cursor.getString(cursor.getColumnIndexOrThrow("data"));
+                String hora = cursor.getString(cursor.getColumnIndexOrThrow("hora"));
+                int local = cursor.getInt(cursor.getColumnIndexOrThrow("local"));
+                int filme = cursor.getInt(cursor.getColumnIndexOrThrow("filme"));
+
+                // Converter string para Date
+                Date data = SessaoModel.stringToDate(dataStr);
+                sessoes.add(new SessaoModel(id_sessao, data, hora, local, filme));
             }
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Não há sessões cadastradas.");
+        } catch (Exception e) {
+            Toast.makeText(context, "Erro ao listar sessões: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        } finally {
+            cursor.close();
         }
 
         return sessoes;
-
     }
 
+    public SessaoModel buscarSessaoPorId(int id) {
+        Cursor cursor = db.query(TABLE_NAME,
+                null,
+                "id_sessao = ?",
+                new String[]{String.valueOf(id)},
+                null, null, null);
+
+        SessaoModel sessao = null;
+        if (cursor.moveToFirst()) {
+            int id_sessao = cursor.getInt(cursor.getColumnIndexOrThrow("id_sessao"));
+            String dataStr = cursor.getString(cursor.getColumnIndexOrThrow("data"));
+            String hora = cursor.getString(cursor.getColumnIndexOrThrow("hora"));
+            int local = cursor.getInt(cursor.getColumnIndexOrThrow("local"));
+            int filme = cursor.getInt(cursor.getColumnIndexOrThrow("filme"));
+
+            Date data = SessaoModel.stringToDate(dataStr);
+            sessao = new SessaoModel(id_sessao, data, hora, local, filme);
+        }
+        cursor.close();
+        return sessao;
+    }
+
+    public void close() {
+        if (db != null && db.isOpen()) {
+            db.close();
+        }
+    }
 }
