@@ -4,8 +4,16 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.myapplication.activities.CrudFilmeActivity;
+import com.example.myapplication.activities.CrudLocalActivity;
+import com.example.myapplication.activities.CrudSessaoActivity;
+import com.example.myapplication.models.FilmeModel;
+import com.example.myapplication.models.LocalModel;
+import com.example.myapplication.models.SessaoModel;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +45,7 @@ public class MenuAdm extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Abre a ActivityFilmes
-                Intent intent = new Intent(MenuAdm.this, FilmeActivity.class);
+                Intent intent = new Intent(MenuAdm.this, CrudFilmeActivity.class);
                 startActivity(intent);
             }
         });
@@ -48,7 +56,7 @@ public class MenuAdm extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Abre a ActivityFilmes
-                Intent intent = new Intent(MenuAdm.this, LocalActivity.class);
+                Intent intent = new Intent(MenuAdm.this, CrudLocalActivity.class);
                 startActivity(intent);
             }
         });
@@ -59,7 +67,7 @@ public class MenuAdm extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // Abre a ActivityFilmes
-                Intent intent = new Intent(MenuAdm.this, SessaoActivity.class);
+                Intent intent = new Intent(MenuAdm.this, CrudSessaoActivity.class);
                 startActivity(intent);
             }
         });

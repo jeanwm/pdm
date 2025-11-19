@@ -8,6 +8,11 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
+
+import com.example.myapplication.models.FilmeModel;
+import com.example.myapplication.models.LocalModel;
+import com.example.myapplication.models.SessaoModel;
+
 import java.util.List;
 
 public class MenuAdmHelper {
@@ -62,12 +67,17 @@ public class MenuAdmHelper {
                         return;
                     }
 
+                    //int generoSelecionado = spinnerGeneros.getSelectedItemPosition() + 1; // Gênero selecionado (1-8)
+                    String generoSelecionadoStr = spinnerGeneros.getSelectedItem().toString();
+
+
+
                     int duracao = Integer.parseInt(duracaoStr);
                     int classificacao = Integer.parseInt(classificacaoStr);
-                    int generoSelecionado = spinnerGeneros.getSelectedItemPosition() + 1; // Gênero selecionado (1-8)
+
 
                     // Criar objeto Filme e adicionar à lista
-                    FilmeModel filme = new FilmeModel(titulo, generoSelecionado, duracao, classificacao);
+                    FilmeModel filme = new FilmeModel(titulo, generoSelecionadoStr, duracao, classificacao);
                     listaDeFilmes.add(filme);
 
                     // Feedback para o usuário

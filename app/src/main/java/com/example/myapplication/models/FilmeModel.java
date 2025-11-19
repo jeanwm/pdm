@@ -1,22 +1,22 @@
-package com.example.myapplication;
+package com.example.myapplication.models;
 
 public class FilmeModel {
     private int id_filme;
     private String titulo;
-    private int genero;
+    private String genero;
     private int duracao;
     private int classificacao;
 
-    // Construtor corrigido
-    public FilmeModel(String titulo, int genero, int duracao, int classificacao) {
+    // Construtor utilizado para a inserção de novos Filmes no Banco
+    public FilmeModel(String titulo, String genero, int duracao, int classificacao) {
         this.titulo = titulo;
         this.genero = genero;
         this.duracao = duracao;
         this.classificacao = classificacao;
     }
 
-    // Construtor adicional com ID
-    public FilmeModel(int id_filme, String titulo, int genero, int duracao, int classificacao) {
+    // Construtor adicional com ID, utilizar quando for listar os filmes do Banco
+    public FilmeModel(int id_filme, String titulo, String genero, int duracao, int classificacao) {
         this.id_filme = id_filme;
         this.titulo = titulo;
         this.genero = genero;
@@ -40,11 +40,11 @@ public class FilmeModel {
         this.titulo = titulo;
     }
 
-    public int getGenero() {
+    public String getGenero() {
         return genero;
     }
 
-    public void setGenero(int genero) {
+    public void setGenero(String genero) {
         this.genero = genero;
     }
 
@@ -66,18 +66,12 @@ public class FilmeModel {
 
     @Override
     public String toString() {
-        return "Título: " + titulo +
-                " | Duração: " + duracao + "min" +
-                " | Classificação: " + classificacao + " anos";
+        return titulo;
     }
 
     public String exibirInfoFilme() {
-        // Método melhorado para mostrar o gênero como string
-        String[] generos = {"", "Ação", "Anime", "Comédia", "Drama", "Ficção Científica", "Romance", "Suspense", "Terror"};
-        String generoStr = (genero >= 1 && genero < generos.length) ? generos[genero] : "Desconhecido";
-
         return "Título: " + titulo + "\n" +
-                "Gênero: " + generoStr + "\n" +
+                "Gênero: " + genero + "\n" +
                 "Duração: " + duracao + " minutos\n" +
                 "Classificação: " + classificacao + " anos";
     }
