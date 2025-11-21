@@ -4,7 +4,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.widget.Toast;
 
 import com.example.myapplication.models.FilmeModel;
 
@@ -24,8 +23,7 @@ public class FilmeDAO {
 
     public long inserirFilme(FilmeModel filme) {
         if (isFilmeDuplicado(filme.getTitulo())) {
-            Toast.makeText(context, "Filme já cadastrado.", Toast.LENGTH_LONG).show();
-            return -1;
+            return -2;
         }
 
         db = dbHelper.getWritableDatabase();
@@ -43,23 +41,40 @@ public class FilmeDAO {
         return id;
     }
 
-   public boolean excluirFilme(int idFilme) {
-        db = dbHelper.getWritableDatabase();
+   public int excluirFilme(int idFilme) {
+        if (isFilmeVinculadoSessao(idFilme)) {
+            return -2;
+        }
 
+        db = dbHelper.getWritableDatabase();
         int linhas = db.delete(DatabaseHelper.TABELA_FILMES,
                 DatabaseHelper.COL_ID_FILME + " = ?",
                 new String[]{String.valueOf(idFilme)});
 
         db.close();
 
-        if (linhas > 0) {
-            Toast.makeText(context, "Filme excluído com sucesso.", Toast.LENGTH_LONG).show();
-            return true;
-        } else {
-            Toast.makeText(context, "Erro ao excluir filme.", Toast.LENGTH_LONG).show();
-        }
+        return linhas > 0 ? 1 : 0; // 1 se excluiu, 0 se não encontrou ou erro
+   }
 
-        return linhas > 0;
+   private boolean isFilmeVinculadoSessao(int idFilme) {
+        db = dbHelper.getReadableDatabase();
+
+        String selection = DatabaseHelper.COL_FK_FILME + "=?";
+        String[] selectionArgs = {String.valueOf(idFilme)};
+
+        Cursor cursor = db.query(DatabaseHelper.TABELA_SESSOES,
+                new String[]{DatabaseHelper.COL_ID_SESSAO},
+                selection,
+                selectionArgs,
+                null,
+                null,
+                null);
+
+        boolean vinculado = cursor.getCount() > 0;
+        cursor.close();
+        db.close();
+
+        return vinculado;
    }
 
     public int atualizarFilme(FilmeModel filme) {
@@ -82,12 +97,6 @@ public class FilmeDAO {
         );
 
         db.close();
-
-        if (linhasAfetadas>0){
-            Toast.makeText(context, "Filme alterado com sucesso.", Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(context, "Erro ao alterar filme.", Toast.LENGTH_LONG).show();
-        }
         return linhasAfetadas;
     }
 
@@ -164,24 +173,4 @@ public class FilmeDAO {
         return filme;
     }
 
-//    public String listarGenero(int id_filme) {
-//        String sql = "SELECT g.descricao FROM filme f JOIN genero g ON f.genero = g.id_genero WHERE f.id_filme = ?";
-//        String descricao = null;
-//
-//        try (Connection conn = Conexao.getConexao();
-//             PreparedStatement ps = conn.prepareStatement(sql)) {
-//
-//            ps.setInt(1, id_filme);
-//            try (ResultSet rs = ps.executeQuery()) {
-//                if (rs.next()) {
-//                    descricao = rs.getString("descricao");
-//                }
-//            }
-//
-//        } catch (SQLException e) {
-//            Toast.makeText(context, "Erro ao retornar gênero: " + e.getMessage(), Toast.LENGTH_LONG).show();
-//        }
-//
-//        return descricao;
-//    }
 }

@@ -89,6 +89,11 @@ public class CrudSessaoActivity extends AppCompatActivity {
         modalOverlay = findViewById(R.id.modalOverlay);
         recyclerViewSessoes = findViewById(R.id.recyclerViewSessoes);
         emptyState = findViewById(R.id.emptyState);
+
+        editData = findViewById(R.id.sessao_editData);
+        editHora = findViewById(R.id.sessao_editHora);
+        spinnerLocal = findViewById(R.id.sessao_spinnerLocal);
+        spinnerFilme = findViewById(R.id.sessao_spinnerFilme);
     }
 
     private void configurarEventos() {
@@ -107,11 +112,20 @@ public class CrudSessaoActivity extends AppCompatActivity {
     }
 
     private void abrirModal() {
+
+        if (listaFilmes == null || listaFilmes.isEmpty() || listaLocais == null || listaLocais.isEmpty()) {
+            Toast.makeText(this, "Você precisa cadastrar ao menos um FILME e um LOCAL antes!", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         editData.setText("");
         editHora.setText("");
-        if (spinnerFilme.getAdapter() != null) spinnerFilme.setSelection(0);
-        if (spinnerLocal.getAdapter() != null) spinnerLocal.setSelection(0);
-
+        if (spinnerFilme.getAdapter() != null && spinnerFilme.getCount() > 0) {
+            spinnerFilme.setSelection(0);
+        }
+        if (spinnerLocal.getAdapter() != null && spinnerLocal.getCount() > 0) {
+            spinnerLocal.setSelection(0);
+        }
         modalCadastro.setVisibility(View.VISIBLE);
         modalOverlay.setVisibility(View.VISIBLE);
 

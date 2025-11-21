@@ -68,11 +68,4 @@ public class FilmeModel {
     public String toString() {
         return titulo;
     }
-
-    public String exibirInfoFilme() {
-        return "Título: " + titulo + "\n" +
-                "Gênero: " + genero + "\n" +
-                "Duração: " + duracao + " minutos\n" +
-                "Classificação: " + classificacao + " anos";
-    }
 }

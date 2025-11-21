@@ -171,7 +171,7 @@ public class CrudLocalActivity extends AppCompatActivity {
         }
     }
 
-    private class SalvarLocalTask extends AsyncTask<Void, Void, Boolean> {
+    private class SalvarLocalTask extends AsyncTask<Void, Void, Long> {
         private final LocalModel novoLocal;
 
         public SalvarLocalTask(LocalModel novoLocal) {
@@ -179,45 +179,48 @@ public class CrudLocalActivity extends AppCompatActivity {
         }
 
         @Override
-        protected Boolean doInBackground(Void... voids) {
+        protected Long doInBackground(Void... voids) {
             try {
-                long result = localDAO.inserirLocal(novoLocal);
-                return result != -1;
+                return localDAO.inserirLocal(novoLocal);
             } catch (Exception e) {
                 Log.e(TAG, "Erro ao salvar local: " + e.getMessage());
-                return false;
+                return -1L;
             }
         }
 
         @Override
-        protected void onPostExecute(Boolean success) {
-            if (success) {
+        protected void onPostExecute(Long resultado) {
+            if (resultado == -2) {
+                Toast.makeText(CrudLocalActivity.this, "Local já cadastrado!", Toast.LENGTH_SHORT).show();
+            } else if (resultado > 0) {
                 Toast.makeText(CrudLocalActivity.this, "Local salvo com sucesso!", Toast.LENGTH_SHORT).show();
                 fecharModal();
                 new CarregarLocaisTask().execute();
             } else {
-                Toast.makeText(CrudLocalActivity.this, "Erro ao salvar local", Toast.LENGTH_SHORT).show();
+                Toast.makeText(CrudLocalActivity.this, "Erro ao salvar local.", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    private class ExcluirLocalTask extends AsyncTask<Integer, Void, Boolean> {
+    private class ExcluirLocalTask extends AsyncTask<Integer, Void, Integer> {
         @Override
-        protected Boolean doInBackground(Integer... ids) {
-            if (ids.length == 0) return false;
+        protected Integer doInBackground(Integer... ids) {
+            if (ids.length == 0) return 0;
             try {
                 return localDAO.excluirLocal(ids[0]);
             } catch (Exception e) {
                 Log.e(TAG, "Erro ao excluir local: " + e.getMessage());
-                return false;
+                return 0;
             }
         }
 
         @Override
-        protected void onPostExecute(Boolean success) {
-            if (success) {
+        protected void onPostExecute(Integer resultado) {
+            if (resultado == 1) {
                 Toast.makeText(CrudLocalActivity.this, "Local excluído!", Toast.LENGTH_SHORT).show();
                 new CarregarLocaisTask().execute();
+            } else if (resultado == -2) {
+                Toast.makeText(CrudLocalActivity.this, "Não é possível excluir um local associado a uma sessão existente.", Toast.LENGTH_LONG).show();
             } else {
                 Toast.makeText(CrudLocalActivity.this, "Erro ao excluir local.", Toast.LENGTH_SHORT).show();
             }

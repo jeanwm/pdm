@@ -30,7 +30,6 @@ public class SessaoDAO {
         db = dbHelper.getWritableDatabase();
 
         if (isSessaoDuplicada(sessao.getHora(), sessao.getLocal(), sessao.getDataString())) {
-            Toast.makeText(context, "Sessão já cadastrada neste horário/local!", Toast.LENGTH_SHORT).show();
             return -1;
         }
 
@@ -63,12 +62,6 @@ public class SessaoDAO {
                 new String[]{String.valueOf(sessao.getId())});
 
         db.close();
-
-        if (linhasAfetadas > 0) {
-            Toast.makeText(context, "Sessão atualizada com sucesso!", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(context, "Erro: Sessão não encontrada.", Toast.LENGTH_SHORT).show();
-        }
 
         return linhasAfetadas;
     }
@@ -164,12 +157,6 @@ public class SessaoDAO {
                 DatabaseHelper.COL_ID_SESSAO + "= ?",
                 new String[]{String.valueOf(idSessao)});
         db.close();
-
-        if (linhas > 0) {
-            Toast.makeText(context, "Sessão excluida com sucesso!", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(context, "Erro: Sessão não encontrada.", Toast.LENGTH_SHORT).show();
-        }
 
         return linhas > 0;
     }

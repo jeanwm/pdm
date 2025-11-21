@@ -44,8 +44,4 @@ public class LocalModel {
     public String toString() {
         return "Bloco: " + bloco + " | Sala: " + sala;
     }
-
-    public String exibirInfoLocal() {
-        return "Bloco: " + bloco + " | Sala: " + sala;
-    }
 }

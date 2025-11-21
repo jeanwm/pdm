@@ -2,24 +2,46 @@ package com.example.myapplication.activities;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.myapplication.R;
 import com.example.myapplication.database.FilmeDAO;
 import com.example.myapplication.models.FilmeModel;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+import com.google.android.material.textfield.TextInputEditText;
 
-import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CrudFilmeActivity extends AppCompatActivity {
 
-    private EditText editNome, editDuracao, editGenero, editClassificacao, editBuscar;
-    private Button btnSalvar, btnCancelar, btnExcluir, btnBuscar;
-    private FilmeDAO filmeDAO;
+    // UI
+    private ExtendedFloatingActionButton btnAdicionar;
+    private ImageButton btnVoltar;
+    private RecyclerView recyclerViewFilmes;
+    private View emptyState;
 
-    private FilmeModel filmeEmEdicao = null;
+    // Modal UI
+    private MaterialCardView modalCadastro;
+    private View modalOverlay;
+    private TextInputEditText editTitulo, editGenero, editDuracao, editClassificacao;
+    private Button btnSalvarModal, btnCancelarModal;
+
+    private FilmeDAO filmeDAO;
+    private List<FilmeModel> listaFilmes;
+    private FilmeAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,279 +52,215 @@ public class CrudFilmeActivity extends AppCompatActivity {
 
         inicializarComponentes();
         configurarEventos();
+        setupRecyclerView();
+
+        // Carregar dados
+        new CarregarFilmesTask().execute();
     }
 
     private void inicializarComponentes() {
-        editNome = findViewById(R.id.filme_editTitulo);
-        editDuracao = findViewById(R.id.filme_editDuracao);
-        editGenero = findViewById(R.id.filme_editGenero);
-        editClassificacao = findViewById(R.id.filme_editClassificacao);
-        editBuscar = findViewById(R.id.filme_buscar);
+        btnAdicionar = findViewById(R.id.filme_btnAdicionar);
+        btnVoltar = findViewById(R.id.btnVoltar);
+        recyclerViewFilmes = findViewById(R.id.recyclerViewFilmes);
+        emptyState = findViewById(R.id.emptyStateFilmes);
 
-        btnSalvar = findViewById(R.id.filme_btnSalvar);
-        btnCancelar = findViewById(R.id.filme_btnCancelar);
-        btnExcluir = findViewById(R.id.filme_btnExcluir);
-        btnBuscar = findViewById(R.id.filme_btnBuscar);
+        // Modal
+        modalCadastro = findViewById(R.id.modalCadastroFilme);
+        modalOverlay = findViewById(R.id.modalOverlayFilme);
+        editTitulo = findViewById(R.id.modal_editTitulo);
+        editGenero = findViewById(R.id.modal_editGenero);
+        editDuracao = findViewById(R.id.modal_editDuracao);
+        editClassificacao = findViewById(R.id.modal_editClassificacao);
+        btnSalvarModal = findViewById(R.id.modal_btnSalvar);
+        btnCancelarModal = findViewById(R.id.modal_btnCancelar);
+    }
+
+    private void setupRecyclerView() {
+        recyclerViewFilmes.setLayoutManager(new LinearLayoutManager(this));
+        listaFilmes = new ArrayList<>();
+        adapter = new FilmeAdapter(listaFilmes);
+        recyclerViewFilmes.setAdapter(adapter);
     }
 
     private void configurarEventos() {
-        btnSalvar.setOnClickListener(v -> salvarFilme());
-        btnCancelar.setOnClickListener(v -> finish());
-
-        btnBuscar.setOnClickListener(v -> buscarFilmePorId());
-
-        btnExcluir.setOnClickListener(v -> excluirFilmePorId());
+        btnAdicionar.setOnClickListener(v -> abrirModal());
+        btnVoltar.setOnClickListener(v -> finish());
+        modalOverlay.setOnClickListener(v -> fecharModal());
+        btnCancelarModal.setOnClickListener(v -> fecharModal());
+        btnSalvarModal.setOnClickListener(v -> salvarFilme());
     }
 
-    private void buscarFilme() {
-        String idStr = editBuscar.getText().toString();
-        if (idStr.isEmpty()) {
-            Toast.makeText(this, "Informe o ID do filme", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private void abrirModal() {
+        editTitulo.setText("");
+        editGenero.setText("");
+        editDuracao.setText("");
+        editClassificacao.setText("");
 
-        try {
-            int id = Integer.parseInt(idStr);
-            new BuscarFilmeTask(this).execute(id);
-        } catch (NumberFormatException e) {
-            Toast.makeText(this, "ID deve ser um número inteiro", Toast.LENGTH_SHORT).show();
-        }
+        modalCadastro.setVisibility(View.VISIBLE);
+        modalOverlay.setVisibility(View.VISIBLE);
+        modalCadastro.setAlpha(0f);
+        modalCadastro.animate().alpha(1f).setDuration(200).start();
     }
 
-    private void preencherCampos(FilmeModel filme) {
-        editNome.setText(filme.getTitulo());
-        editDuracao.setText(String.valueOf(filme.getDuracao()));
-        editGenero.setText(filme.getGenero());
-        editClassificacao.setText(String.valueOf(filme.getClassificacao()));
-        Toast.makeText(this, "Filme '" + filme.getTitulo() + "' carregado para edição.", Toast.LENGTH_SHORT).show();
+    private void fecharModal() {
+        modalCadastro.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    modalCadastro.setVisibility(View.GONE);
+                    modalOverlay.setVisibility(View.GONE);
+                })
+                .start();
     }
 
     private void salvarFilme() {
-        String nome = editNome.getText() != null ? editNome.getText().toString().trim() : "";
-        String duracaoStr = editDuracao.getText() != null ? editDuracao.getText().toString().trim() : "";
-        String genero = editGenero.getText() != null ? editGenero.getText().toString().trim() : "";
-        String classificacaoStr = editClassificacao.getText() != null ? editClassificacao.getText().toString().trim() : "";
+        String titulo = editTitulo.getText().toString().trim();
+        String genero = editGenero.getText().toString().trim();
+        String duracaoStr = editDuracao.getText().toString().trim();
+        String classStr = editClassificacao.getText().toString().trim();
 
-        if (nome.isEmpty() || duracaoStr.isEmpty()) {
-            Toast.makeText(this, "Preencha Nome e Duração", Toast.LENGTH_SHORT).show();
+        if (titulo.isEmpty() || duracaoStr.isEmpty()) {
+            Toast.makeText(this, "Preencha Título e Duração", Toast.LENGTH_SHORT).show();
             return;
         }
 
         try {
             int duracao = Integer.parseInt(duracaoStr);
-            int classificacao = Integer.parseInt(classificacaoStr);
+            int classificacao = classStr.isEmpty() ? 0 : Integer.parseInt(classStr);
 
-            if (filmeEmEdicao == null) {
-                filmeEmEdicao = new FilmeModel(nome, genero, duracao, classificacao);
-            } else {
-                filmeEmEdicao.setTitulo(nome);
-                filmeEmEdicao.setGenero(genero);
-                filmeEmEdicao.setDuracao(duracao);
-                filmeEmEdicao.setClassificacao(classificacao);
-            }
-
-            new SalvarFilmeTask(this).execute(filmeEmEdicao);
+            FilmeModel novoFilme = new FilmeModel(titulo, genero, duracao, classificacao);
+            new SalvarFilmeTask().execute(novoFilme);
 
         } catch (NumberFormatException e) {
-            Toast.makeText(this, "Duração e Classificação devem ser números!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Use apenas números em Duração/Classificação", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void excluirFilmePorId() {
-        String idStr = editBuscar.getText() != null ? editBuscar.getText().toString().trim() : "";
-        if (idStr.isEmpty()) {
-            Toast.makeText(this,"Digite o ID no campo de busca.", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private void excluirFilme(int idFilme) {
+        new ExcluirFilmeTask().execute(idFilme);
+    }
 
-        try {
-            int idFilme = Integer.parseInt(idStr);
-            new ExcluirFilmeTask(this).execute(idFilme);
-        } catch (NumberFormatException e) {
-            Toast.makeText(this, "ID deve ser um número inteiro", Toast.LENGTH_SHORT).show();
+    private void verificarListaVazia() {
+        boolean vazia = listaFilmes == null || listaFilmes.isEmpty();
+        emptyState.setVisibility(vazia ? View.VISIBLE : View.GONE);
+        recyclerViewFilmes.setVisibility(vazia ? View.GONE : View.VISIBLE);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (modalCadastro.getVisibility() == View.VISIBLE) {
+            fecharModal();
+        } else {
+            super.onBackPressed();
         }
     }
 
-    private void buscarFilmePorId() {
-        String idStr = editBuscar.getText() != null ? editBuscar.getText().toString().trim() : "";
-        if (idStr.isEmpty()) {
-            Toast.makeText(this, "Digite o ID no campo de busca.", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    // ================== ASYNC TASKS ==================
 
-        try {
-            int idFilme = Integer.parseInt(idStr);
-            new BuscarFilmeTask(this).execute(idFilme);
-        } catch (NumberFormatException e) {
-            Toast.makeText(this, "ID deve ser um número inteiro", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private class SalvarFilmeTask extends AsyncTask<FilmeModel, Void, Boolean> {
-        private final WeakReference<CrudFilmeActivity> activityRef;
-        private boolean isUpdate = false;
-
-        SalvarFilmeTask(CrudFilmeActivity activity) {
-            activityRef = new WeakReference<>(activity);
-        }
-
-
+    private class CarregarFilmesTask extends AsyncTask<Void, Void, List<FilmeModel>> {
         @Override
-        protected Boolean doInBackground(FilmeModel... filmes) {
-            FilmeModel filme = filmes[0];
-            try {
-                if (filme.getId()>0) { // ID > 0 significa que é uma atualização
-                    isUpdate = true;
-                    int linhasAfetadas = filmeDAO.atualizarFilme(filme);
-                    return linhasAfetadas > 0;
-                } else { // Se não houver ID ou for 0, é uma inserção
-                    long id = filmeDAO.inserirFilme(filme);
-                    if (id != -1) {
-                        filme.setId((int) id);
-                    }
-                    return id != -1;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
+        protected List<FilmeModel> doInBackground(Void... voids) {
+            return filmeDAO.listarFilmes();
         }
 
         @Override
-        protected void onPostExecute(Boolean sucesso) {
-            CrudFilmeActivity activity = activityRef.get();
-            if (activity == null || activity.isFinishing()) {
-                return; // Evita execução se a Activity não existir mais
-            }
+        protected void onPostExecute(List<FilmeModel> filmes) {
+            listaFilmes = filmes;
+            adapter.atualizarLista(listaFilmes);
+            verificarListaVazia();
+        }
+    }
 
-            // CORREÇÃO: Usar a referência segura da Activity
-            if (sucesso) {
-                String msg = isUpdate ? "Filme atualizado com sucesso!" : "Filme salvo com sucesso!";
-                Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show();
-                activity.limparCampos(); // Chamar métodos da Activity através da referência
+    private class SalvarFilmeTask extends AsyncTask<FilmeModel, Void, Long> {
+        @Override
+        protected Long doInBackground(FilmeModel... filmes) {
+            return filmeDAO.inserirFilme(filmes[0]);
+        }
+
+        @Override
+        protected void onPostExecute(Long result) {
+            if (result == -2) {
+                Toast.makeText(CrudFilmeActivity.this, "Filme já existe!", Toast.LENGTH_SHORT).show();
+            } else if (result > 0) {
+                Toast.makeText(CrudFilmeActivity.this, "Filme salvo!", Toast.LENGTH_SHORT).show();
+                fecharModal();
+                new CarregarFilmesTask().execute();
             } else {
-                Toast.makeText(activity, "Erro ao salvar filme.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(CrudFilmeActivity.this, "Erro ao salvar.", Toast.LENGTH_SHORT).show();
             }
         }
-
-//        @Override
-//        protected void onPostExecute(Boolean sucesso) {
-//            if (sucesso) {
-//                String msg = isUpdate ? "Filme atualizado com sucesso!" : "Filme salvo com sucesso!";
-//                Toast.makeText(CrudFilmeActivity.this, msg, Toast.LENGTH_SHORT).show();
-//                limparCampos();
-//            } else {
-//                Toast.makeText(CrudFilmeActivity.this, "Erro ao salvar filme.", Toast.LENGTH_SHORT).show();
-//            }
-//        }
     }
 
-    private class ExcluirFilmeTask extends AsyncTask<Integer, Void, Boolean> {
-        private final WeakReference<CrudFilmeActivity> activityRef;
-
-        ExcluirFilmeTask(CrudFilmeActivity activity) {
-            activityRef = new WeakReference<>(activity);
+    private class ExcluirFilmeTask extends AsyncTask<Integer, Void, Integer> {
+        @Override
+        protected Integer doInBackground(Integer... ids) {
+            return filmeDAO.excluirFilme(ids[0]);
         }
 
         @Override
-        protected Boolean doInBackground(Integer... ids) {
-            if (ids.length == 0) return false;
-            int idFilme = ids[0];
-            try {
-                return filmeDAO.excluirFilme(idFilme);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(Boolean success) {
-            CrudFilmeActivity activity = activityRef.get();
-            if (activity == null || activity.isFinishing()) {
-                return;
-            }
-
-            if (success) {
-                Toast.makeText(activity, "Filme excluído com sucesso!", Toast.LENGTH_SHORT).show();
-                activity.limparCampos();
+        protected void onPostExecute(Integer resultado) {
+            if (resultado == 1) {
+                Toast.makeText(CrudFilmeActivity.this, "Filme excluído.", Toast.LENGTH_SHORT).show();
+                new CarregarFilmesTask().execute();
+            } else if (resultado == -2) {
+                Toast.makeText(CrudFilmeActivity.this, "Não é possível excluir um filme associado a uma sessão existente.", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(activity, "Erro ao excluir. ID não encontrado.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(CrudFilmeActivity.this, "Erro ao excluir Filme ou Filme não encontrado.", Toast.LENGTH_SHORT).show();
             }
         }
-
-//        @Override
-//        protected void onPostExecute(Boolean success) {
-//            if (success) {
-//                Toast.makeText(CrudFilmeActivity.this, "Filme excluído com sucesso!", Toast.LENGTH_SHORT).show();
-//                limparCampos();
-//            } else {
-//                Toast.makeText(CrudFilmeActivity.this, "Erro ao excluir. ID não encontrado.", Toast.LENGTH_SHORT).show();
-//            }
-//        }
     }
 
-    private class BuscarFilmeTask extends AsyncTask<Integer, Void, FilmeModel> {
-        private final WeakReference<CrudFilmeActivity> activityRef;
+    // ================== ADAPTER ==================
 
-        BuscarFilmeTask(CrudFilmeActivity activity) {
-            activityRef = new WeakReference<>(activity);
+    private class FilmeAdapter extends RecyclerView.Adapter<FilmeAdapter.FilmeViewHolder> {
+        private List<FilmeModel> lista;
+
+        public FilmeAdapter(List<FilmeModel> lista) {
+            this.lista = lista;
+        }
+
+        public void atualizarLista(List<FilmeModel> novaLista) {
+            this.lista = novaLista;
+            notifyDataSetChanged();
+        }
+
+        @NonNull
+        @Override
+        public FilmeViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_filme, parent, false);
+            return new FilmeViewHolder(view);
         }
 
         @Override
-        protected FilmeModel doInBackground(Integer... ids) {
-            if (ids.length == 0) return null;
-            int idFilme = ids[0];
-            return filmeDAO.buscarFilmePorId(idFilme);
+        public void onBindViewHolder(@NonNull FilmeViewHolder holder, int position) {
+            FilmeModel filme = lista.get(position);
+
+            holder.txtTitulo.setText(filme.getTitulo());
+            holder.txtGenero.setText(filme.getGenero());
+            holder.txtDuracao.setText(filme.getDuracao() + " min");
+            holder.txtClassificacao.setText("+" + filme.getClassificacao() + " anos");
+
+            holder.btnExcluir.setOnClickListener(v -> excluirFilme(filme.getId()));
         }
 
         @Override
-        protected void onPostExecute(FilmeModel filme) {
-            CrudFilmeActivity activity = activityRef.get();
-            if (activity == null || activity.isFinishing()) {
-                return;
-            }
-
-            // CORREÇÃO: Acesso aos métodos da Activity
-            if (filme != null) {
-                activity.filmeEmEdicao = filme;
-                activity.editNome.setText(filme.getTitulo());
-                activity.editDuracao.setText(String.valueOf(filme.getDuracao()));
-                activity.editGenero.setText(filme.getGenero());
-                activity.editClassificacao.setText(String.valueOf(filme.getClassificacao()));
-                Toast.makeText(activity, "Filme carregado para edição.", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(activity, "Filme com ID não encontrado.", Toast.LENGTH_SHORT).show();
-                activity.limparCampos();
-            }
+        public int getItemCount() {
+            return lista != null ? lista.size() : 0;
         }
 
-//        @Override
-//        protected void onPostExecute(FilmeModel filme) {
-//            if (filme != null) {
-//                filmeEmEdicao = filme;
-//                editNome.setText(filme.getTitulo());
-//                editDuracao.setText(String.valueOf(filme.getDuracao()));
-//                editGenero.setText(filme.getGenero());
-//                editClassificacao.setText(String.valueOf(filme.getClassificacao()));
-//                Toast.makeText(CrudFilmeActivity.this, "Filme carregado para edição.", Toast.LENGTH_SHORT).show();
-//            } else {
-//                Toast.makeText(CrudFilmeActivity.this, "Filme com ID não encontrado.", Toast.LENGTH_SHORT).show();
-//                limparCampos();
-//            }
-//        }
-    }
+        class FilmeViewHolder extends RecyclerView.ViewHolder {
+            TextView txtTitulo, txtGenero, txtDuracao, txtClassificacao;
+            ImageButton btnExcluir;
 
-    private void limparCampos() {
-        editNome.setText("");
-        editDuracao.setText("");
-        editGenero.setText("");
-        editClassificacao.setText("");
-        editBuscar.setText("");
-        editNome.requestFocus();
-
-        filmeEmEdicao = null;
-
-        btnSalvar.setText("Salvar");
+            public FilmeViewHolder(@NonNull View itemView) {
+                super(itemView);
+                txtTitulo = itemView.findViewById(R.id.txtTitulo);
+                txtGenero = itemView.findViewById(R.id.txtGenero);
+                txtDuracao = itemView.findViewById(R.id.txtDuracao);
+                txtClassificacao = itemView.findViewById(R.id.txtClassificacao);
+                btnExcluir = itemView.findViewById(R.id.btnExcluirFilme);
+            }
+        }
     }
 }

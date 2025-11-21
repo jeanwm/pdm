@@ -5,7 +5,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.widget.Toast;
 
 import com.example.myapplication.models.LocalModel;
 
@@ -24,8 +23,7 @@ public class LocalDAO {
     }
     public long inserirLocal(LocalModel local) {
         if (isLocalDuplicado(local.getSala(), local.getBloco())) {
-            Toast.makeText(context, "Local já cadastrado!", Toast.LENGTH_SHORT).show();
-            return -1;
+            return -2;
         }
 
         db = dbHelper.getWritableDatabase();
@@ -41,15 +39,37 @@ public class LocalDAO {
         return id;
     }
 
-    public int excluirLocal(int sala, String bloco) {
-        db = dbHelper.getWritableDatabase();
-        String whereClause = DatabaseHelper.COL_SALA + " = ? AND " + DatabaseHelper.COL_BLOCO + " = ?";
-        String[] whereArgs = {String.valueOf(sala), bloco};
+    public int excluirLocal(int idLocal) {
+        if (isLocalVinculadoSessao(idLocal)) {
+            return -2; // local associado a uma sessão
+        }
 
-        int linhasAfetadas = db.delete(DatabaseHelper.TABELA_LOCAIS, whereClause, whereArgs);
+        db = dbHelper.getWritableDatabase();
+        int linhas = db.delete(DatabaseHelper.TABELA_LOCAIS,
+                DatabaseHelper.COL_ID_LOCAL + " = ?",
+                new String[]{String.valueOf(idLocal)});
         db.close();
 
-        return linhasAfetadas;
+        return linhas > 0 ? 1 : 0; // 1 para sucesso, 0 para erro
+    }
+
+    private boolean isLocalVinculadoSessao(int idLocal) {
+        db = dbHelper.getReadableDatabase();
+
+        String selection = DatabaseHelper.COL_FK_LOCAL + " = ?";
+        String[] selectionArgs = {String.valueOf(idLocal)};
+
+        Cursor cursor = db.query(DatabaseHelper.TABELA_SESSOES,
+                new String[]{DatabaseHelper.COL_ID_SESSAO},
+                selection,
+                selectionArgs,
+                null, null, null);
+
+        boolean vinculado = cursor.getCount() > 0;
+        cursor.close();
+        db.close();
+
+        return vinculado;
     }
 
     public List<LocalModel> listarLocais() {
@@ -92,14 +112,4 @@ public class LocalDAO {
 
         return exists;
     }
-
-    public boolean excluirLocal(int id_local) {
-        db = dbHelper.getWritableDatabase();
-        int linhas = db.delete(DatabaseHelper.TABELA_LOCAIS,
-                DatabaseHelper.COL_ID_LOCAL + " = ?",
-                new String[]{String.valueOf(id_local)});
-        db.close();
-        return linhas > 0;
-    }
-
 }
