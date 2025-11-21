@@ -1,22 +1,36 @@
-package com.example.myapplication;
+package com.example.myapplication.services;
 
 import android.content.Context;
+import android.os.Build;
 import android.util.Log;
+
+import androidx.annotation.RequiresApi;
+
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.Scope;
-import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
+import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventDateTime;
+
+import org.threeten.bp.DateTimeUtils;
 import org.threeten.bp.LocalDateTime;
 import org.threeten.bp.ZoneId;
 import org.threeten.bp.format.DateTimeFormatter;
+
+import com.example.myapplication.R;
+import com.example.myapplication.database.FilmeDAO;
+import com.example.myapplication.database.LocalDAO;
+import com.example.myapplication.database.SessaoDAO;
+import com.example.myapplication.models.FilmeModel;
+import com.example.myapplication.models.LocalModel;
+import com.example.myapplication.models.SessaoModel;
 
 import java.util.Collections;
 import java.util.Date;
@@ -47,7 +61,7 @@ public class GoogleCalendarManager {
         credential.setSelectedAccount(account.getAccount());
 
         calendarService = new Calendar.Builder(
-                AndroidHttp.newCompatibleTransport(),
+                new NetHttpTransport(),
                 new GsonFactory(),
                 credential)
                 .setApplicationName("Cinema Estudantil")
@@ -55,7 +69,7 @@ public class GoogleCalendarManager {
     }
 
     // Criar evento no Google Calendar
-    public void criarEventoNoCalendar(Sessao sessao, String tituloFilme, String nomeLocal) {
+    public void criarEventoNoCalendar(SessaoModel sessao, String tituloFilme, String nomeLocal) {
         if (calendarService == null) {
             Log.e(TAG, "Calendar service não inicializado");
             return;
@@ -71,8 +85,11 @@ public class GoogleCalendarManager {
             // Configurar data e hora de início
             Date dataSessao = sessao.getData();
             String horaSessao = sessao.getHora();
-            
-            LocalDateTime startDateTime = combineDataHora(dataSessao, horaSessao);
+
+            LocalDateTime startDateTime = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startDateTime = combineDataHora(dataSessao, horaSessao);
+            }
             EventDateTime start = new EventDateTime()
                     .setDateTime(new com.google.api.client.util.DateTime(startDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()));
             event.setStart(start);
@@ -88,21 +105,22 @@ public class GoogleCalendarManager {
             Event createdEvent = calendarService.events().insert(calendarId, event).execute();
 
             Log.i(TAG, "Evento criado: " + createdEvent.getId());
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Erro ao criar evento no Calendar", e);
         }
     }
 
     // Método auxiliar para combinar data e hora
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private LocalDateTime combineDataHora(Date data, String hora) {
-        LocalDateTime dataLocal = LocalDateTime.ofInstant(data.toInstant(), ZoneId.systemDefault());
-        
+        LocalDateTime dataLocal = LocalDateTime.ofInstant(DateTimeUtils.toInstant(data), ZoneId.systemDefault());
+
         // Parse da hora no formato "HH:mm"
         String[] partesHora = hora.split(":");
         int horas = Integer.parseInt(partesHora[0]);
         int minutos = Integer.parseInt(partesHora[1]);
-        
+
         return dataLocal.withHour(horas).withMinute(minutos).withSecond(0);
     }
 

@@ -1,4 +1,4 @@
-package com.example.myapplication;
+package com.example.myapplication.models;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -88,13 +88,5 @@ public class SessaoModel {
     public String toString() {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
         return "Data: " + sdf.format(data) + " | Hora: " + hora + " | Local ID: " + local + " | Filme ID: " + filme;
-    }
-
-    public String exibirInfoSessao() {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-        return "Data: " + sdf.format(data) + "\n" +
-                "Hora: " + hora + "\n" +
-                "Local ID: " + local + "\n" +
-                "Filme ID: " + filme;
     }
 }

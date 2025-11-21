@@ -1,4 +1,4 @@
-package com.example.myapplication;
+package com.example.myapplication.models;
 
 public class LocalModel {
     private int id_local;
@@ -42,10 +42,6 @@ public class LocalModel {
 
     @Override
     public String toString() {
-        return "Bloco: " + bloco + " | Sala: " + sala;
-    }
-
-    public String exibirInfoLocal() {
         return "Bloco: " + bloco + " | Sala: " + sala;
     }
 }

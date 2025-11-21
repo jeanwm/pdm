@@ -1,27 +1,34 @@
+// CrudSessaoActivity.java
 package com.example.myapplication.activities;
 
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.myapplication.R;
 import com.example.myapplication.database.FilmeDAO;
 import com.example.myapplication.database.LocalDAO;
 import com.example.myapplication.database.SessaoDAO;
-import com.example.myapplication.models.Filme;
-import com.example.myapplication.models.Local;
-import com.example.myapplication.models.Sessao;
-import com.example.myapplication.services.GoogleCalendarManager;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.tasks.Task;
+import com.example.myapplication.models.FilmeModel;
+import com.example.myapplication.models.LocalModel;
+import com.example.myapplication.models.SessaoModel;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -30,346 +37,359 @@ import java.util.List;
 import java.util.Locale;
 
 public class CrudSessaoActivity extends AppCompatActivity {
-    private static final int RC_SIGN_IN = 1001;
-    
-    private EditText editData, editHora, editBuscar;
+
+    private static final String TAG = "CrudSessaoActivity";
+
+    // Componentes de UI
+    private ExtendedFloatingActionButton btnAdicionar;
+    private ImageButton btnVoltar;
+    private Button btnSalvar, btnCancelar;
+    private EditText editData, editHora;
     private Spinner spinnerLocal, spinnerFilme;
-    private Button btnSalvar, btnCancelar, btnAdicionar, btnExcluir;
-    private GoogleCalendarManager calendarManager;
-    
-    private List<Filme> listaFilmes;
-    private List<Local> listaLocais;
-    private ArrayAdapter<Filme> adapterFilmes;
-    private ArrayAdapter<Local> adapterLocais;
-    
+    private MaterialCardView modalCadastro;
+    private View modalOverlay;
+    private RecyclerView recyclerViewSessoes;
+    private View emptyState;
+
+    // DAOs
     private SessaoDAO sessaoDAO;
     private FilmeDAO filmeDAO;
     private LocalDAO localDAO;
-    
-    private Sessao sessaoSalva;
-    private Filme filmeSelecionado;
-    private Local localSelecionado;
+
+    // Dados
+    private List<FilmeModel> listaFilmes;
+    private List<LocalModel> listaLocais;
+    private List<SessaoModel> listaSessoes;
+    private SessaoAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.crud_sessao);
-        
-        // Inicializar DAOs
-        sessaoDAO = new SessaoDAO();
-        filmeDAO = new FilmeDAO();
-        localDAO = new LocalDAO();
-        
-        // Inicializar o gerenciador do Google Calendar
-        calendarManager = new GoogleCalendarManager(this);
-        
-        // Inicializar listas
-        listaFilmes = new ArrayList<>();
-        listaLocais = new ArrayList<>();
-        
-        // Inicializar componentes
+
+        // Inicializa DAOs
+        sessaoDAO = new SessaoDAO(this);
+        filmeDAO = new FilmeDAO(this);
+        localDAO = new LocalDAO(this);
+
         inicializarComponentes();
         configurarEventos();
-        
-        // Carregar dados do banco em background
+        setupRecyclerView();
+
+        // Carregar dados
         new CarregarDadosTask().execute();
     }
 
     private void inicializarComponentes() {
-        editBuscar = findViewById(R.id.sessao_buscar);
+        btnAdicionar = findViewById(R.id.sessao_btnAdicionar);
+        btnVoltar = findViewById(R.id.btnVoltar);
+        btnSalvar = findViewById(R.id.sessao_btnSalvar);
+        btnCancelar = findViewById(R.id.sessao_btnCancelar);
+        modalCadastro = findViewById(R.id.modalCadastro);
+        modalOverlay = findViewById(R.id.modalOverlay);
+        recyclerViewSessoes = findViewById(R.id.recyclerViewSessoes);
+        emptyState = findViewById(R.id.emptyState);
+
         editData = findViewById(R.id.sessao_editData);
         editHora = findViewById(R.id.sessao_editHora);
         spinnerLocal = findViewById(R.id.sessao_spinnerLocal);
         spinnerFilme = findViewById(R.id.sessao_spinnerFilme);
-        
-        btnSalvar = findViewById(R.id.sessao_btnSalvar);
-        btnCancelar = findViewById(R.id.sessao_btnCancelar);
-        btnAdicionar = findViewById(R.id.sessao_btnAdicionar);
-        btnExcluir = findViewById(R.id.sessao_btnExcluir);
     }
 
     private void configurarEventos() {
+        btnAdicionar.setOnClickListener(v -> abrirModal());
+        btnVoltar.setOnClickListener(v -> finish());
         btnSalvar.setOnClickListener(v -> salvarSessao());
-        btnCancelar.setOnClickListener(v -> finish());
-        btnAdicionar.setOnClickListener(v -> limparFormulario());
-        btnExcluir.setOnClickListener(v -> excluirSessao());
-        
-        // Listeners para capturar a seleção dos spinners
-        spinnerFilme.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                if (position >= 0 && position < listaFilmes.size()) {
-                    filmeSelecionado = listaFilmes.get(position);
-                }
-            }
-
-            @Override
-            public void onNothingSelected(android.widget.AdapterView<?> parent) {
-                filmeSelecionado = null;
-            }
-        });
-
-        spinnerLocal.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                if (position >= 0 && position < listaLocais.size()) {
-                    localSelecionado = listaLocais.get(position);
-                }
-            }
-
-            @Override
-            public void onNothingSelected(android.widget.AdapterView<?> parent) {
-                localSelecionado = null;
-            }
-        });
+        btnCancelar.setOnClickListener(v -> fecharModal());
+        modalOverlay.setOnClickListener(v -> fecharModal());
     }
 
-    private void carregarSpinners() {
-        // Adapter para filmes - mostra o título
-        adapterFilmes = new ArrayAdapter<Filme>(this, 
-                android.R.layout.simple_spinner_item, listaFilmes) {
-            @Override
-            public java.lang.CharSequence getItem(int position) {
-                Filme filme = listaFilmes.get(position);
-                return filme.getTitulo() + " (" + filme.getDuracao() + "min)";
-            }
-        };
-        adapterFilmes.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerFilme.setAdapter(adapterFilmes);
+    private void setupRecyclerView() {
+        recyclerViewSessoes.setLayoutManager(new LinearLayoutManager(this));
+        listaSessoes = new ArrayList<>();
+        adapter = new SessaoAdapter(listaSessoes);
+        recyclerViewSessoes.setAdapter(adapter);
+    }
 
-        // Adapter para locais - mostra bloco e sala
-        adapterLocais = new ArrayAdapter<Local>(this, 
-                android.R.layout.simple_spinner_item, listaLocais) {
-            @Override
-            public java.lang.CharSequence getItem(int position) {
-                Local local = listaLocais.get(position);
-                return "Bloco " + local.getBloco() + " - Sala " + local.getSala();
-            }
-        };
-        adapterLocais.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerLocal.setAdapter(adapterLocais);
+    private void abrirModal() {
+
+        if (listaFilmes == null || listaFilmes.isEmpty() || listaLocais == null || listaLocais.isEmpty()) {
+            Toast.makeText(this, "Você precisa cadastrar ao menos um FILME e um LOCAL antes!", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        editData.setText("");
+        editHora.setText("");
+        if (spinnerFilme.getAdapter() != null && spinnerFilme.getCount() > 0) {
+            spinnerFilme.setSelection(0);
+        }
+        if (spinnerLocal.getAdapter() != null && spinnerLocal.getCount() > 0) {
+            spinnerLocal.setSelection(0);
+        }
+        modalCadastro.setVisibility(View.VISIBLE);
+        modalOverlay.setVisibility(View.VISIBLE);
+
+        modalCadastro.setAlpha(0f);
+        modalCadastro.animate()
+                .alpha(1f)
+                .setDuration(200)
+                .start();
+    }
+
+    private void fecharModal() {
+        modalCadastro.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction(() -> {
+                    modalCadastro.setVisibility(View.GONE);
+                    modalOverlay.setVisibility(View.GONE);
+                })
+                .start();
     }
 
     private void salvarSessao() {
-        if (validarFormulario()) {
-            new SalvarSessaoTask().execute();
-        }
-    }
+        String dataStr = editData.getText().toString().trim();
+        String hora = editHora.getText().toString().trim();
 
-    private boolean validarFormulario() {
-        if (editData.getText().toString().isEmpty()) {
-            Toast.makeText(this, "Informe a data (dd/MM/aaaa)", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        
-        if (editHora.getText().toString().isEmpty()) {
-            Toast.makeText(this, "Informe o horário (HH:mm)", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        
-        if (filmeSelecionado == null) {
-            Toast.makeText(this, "Selecione um filme", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        
-        if (localSelecionado == null) {
-            Toast.makeText(this, "Selecione um local", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        
-        return true;
-    }
-
-    private Date parseData(String dataString) {
-        try {
-            SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-            return format.parse(dataString);
-        } catch (ParseException e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Formato de data inválido. Use dd/MM/aaaa", Toast.LENGTH_SHORT).show();
-            return new Date(); // Retorna data atual em caso de erro
-        }
-    }
-
-    private void adicionarAoGoogleCalendar() {
-        if (filmeSelecionado == null || localSelecionado == null) {
-            Toast.makeText(this, "Dados incompletos para criar evento no Calendar", Toast.LENGTH_SHORT).show();
+        if (dataStr.isEmpty() || hora.isEmpty()) {
+            Toast.makeText(this, "Preencha a data e hora.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (calendarManager.isUserLoggedIn()) {
-            // Usuário já está logado - criar evento diretamente
-            GoogleSignInAccount account = calendarManager.getLoggedInAccount();
-            calendarManager.initializeCalendarService(account);
-            
-            // Passar os dados completos para o Calendar
-            calendarManager.criarEventoNoCalendar(
-                sessaoSalva, 
-                filmeSelecionado.getTitulo(),
-                "Bloco " + localSelecionado.getBloco() + " - Sala " + localSelecionado.getSala()
-            );
-            
-            Toast.makeText(this, "Sessão adicionada ao Google Calendar!", Toast.LENGTH_SHORT).show();
-            finish(); // Fechar activity após salvar
-        } else {
-            // Usuário não está logado - solicitar login
-            solicitarLoginGoogle();
+        if (listaFilmes == null || listaLocais == null || listaFilmes.isEmpty() || listaLocais.isEmpty()) {
+            Toast.makeText(this, "Dados de filmes/locais não carregados.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            Date data = sdf.parse(dataStr);
+
+            int filmeIndex = spinnerFilme.getSelectedItemPosition();
+            int localIndex = spinnerLocal.getSelectedItemPosition();
+
+            if (filmeIndex < 0 || localIndex < 0) {
+                Toast.makeText(this, "Selecione um filme e um local válidos.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            FilmeModel filmeSelecionado = listaFilmes.get(filmeIndex);
+            LocalModel localSelecionado = listaLocais.get(localIndex);
+
+            SessaoModel novaSessao = new SessaoModel(data, hora, localSelecionado.getId(), filmeSelecionado.getId());
+
+            new SalvarSessaoTask(novaSessao, filmeSelecionado, localSelecionado).execute();
+
+        } catch (ParseException e) {
+            Toast.makeText(this, "Formato de data inválido. Use DD/MM/AAAA.", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e(TAG, "Erro ao preparar sessão: " + e.getMessage());
+            Toast.makeText(this, "Erro interno ao salvar sessão.", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void solicitarLoginGoogle() {
-        Intent signInIntent = calendarManager.getGoogleSignInClient().getSignInIntent();
-        startActivityForResult(signInIntent, RC_SIGN_IN);
+    private void excluirSessao(int idSessao) {
+        new ExcluirSessaoTask().execute(idSessao);
+    }
+
+    private void verificarListaVazia() {
+        boolean listaVazia = listaSessoes == null || listaSessoes.isEmpty();
+        emptyState.setVisibility(listaVazia ? View.VISIBLE : View.GONE);
+        recyclerViewSessoes.setVisibility(listaVazia ? View.GONE : View.VISIBLE);
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        
-        if (requestCode == RC_SIGN_IN) {
-            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-            handleSignInResult(task);
+    public void onBackPressed() {
+        if (modalCadastro.getVisibility() == View.VISIBLE) {
+            fecharModal();
+        } else {
+            super.onBackPressed();
         }
     }
 
-    private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
-        try {
-            GoogleSignInAccount account = completedTask.getResult(ApiException.class);
-            // Login bem-sucedido
-            calendarManager.initializeCalendarService(account);
-            
-            // Agora criar o evento no Calendar
-            if (sessaoSalva != null && filmeSelecionado != null && localSelecionado != null) {
-                calendarManager.criarEventoNoCalendar(
-                    sessaoSalva, 
-                    filmeSelecionado.getTitulo(),
-                    "Bloco " + localSelecionado.getBloco() + " - Sala " + localSelecionado.getSala()
-                );
-                Toast.makeText(this, "Sessão adicionada ao Google Calendar!", Toast.LENGTH_SHORT).show();
-                finish(); // Fechar activity após salvar
-            }
-            
-        } catch (ApiException e) {
-            // Login falhou, mas a sessão já foi salva localmente
-            Log.w("GoogleCalendar", "Login falhou: " + e.getStatusCode());
-            Toast.makeText(this, "Sessão salva no banco, mas não foi possível adicionar ao Calendar", Toast.LENGTH_SHORT).show();
-            finish(); // Fechar activity mesmo com falha no Calendar
-        }
-    }
+    // ==================== AsyncTasks ====================
 
-    private void limparFormulario() {
-        editData.setText("");
-        editHora.setText("");
-        editBuscar.setText("");
-        if (spinnerLocal.getCount() > 0) spinnerLocal.setSelection(0);
-        if (spinnerFilme.getCount() > 0) spinnerFilme.setSelection(0);
-        filmeSelecionado = null;
-        localSelecionado = null;
-        
-        Toast.makeText(this, "Formulário limpo", Toast.LENGTH_SHORT).show();
-    }
-
-    private void excluirSessao() {
-        String busca = editBuscar.getText().toString();
-        if (busca.isEmpty()) {
-            Toast.makeText(this, "Digite um termo de busca para excluir", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
-        // TODO: Implementar lógica de exclusão baseada na busca
-        // Você precisará buscar a sessão primeiro e depois excluir
-        Toast.makeText(this, "Funcionalidade de exclusão a implementar para: " + busca, Toast.LENGTH_SHORT).show();
-    }
-
-    // AsyncTask para carregar dados do banco
-    private class CarregarDadosTask extends AsyncTask<Void, Void, Boolean> {
-        
+    private class CarregarDadosTask extends AsyncTask<Void, Void, Void> {
         @Override
-        protected Boolean doInBackground(Void... voids) {
-            try {
-                // Carregar filmes e locais do banco
-                listaFilmes.clear();
-                listaLocais.clear();
-                
-                List<Filme> filmes = filmeDAO.listarFilmes();
-                List<Local> locais = localDAO.listarLocais();
-                
-                if (filmes != null) listaFilmes.addAll(filmes);
-                if (locais != null) listaLocais.addAll(locais);
-                
-                return true;
-            } catch (Exception e) {
-                Log.e("CrudSessao", "Erro ao carregar dados: " + e.getMessage());
-                return false;
-            }
+        protected Void doInBackground(Void... voids) {
+            listaFilmes = filmeDAO.listarFilmes();
+            listaLocais = localDAO.listarLocais();
+            listaSessoes = sessaoDAO.listarSessoes();
+            return null;
         }
-        
+
         @Override
-        protected void onPostExecute(Boolean success) {
-            if (success) {
-                carregarSpinners();
-                if (listaFilmes.isEmpty()) {
-                    Toast.makeText(CrudSessaoActivity.this, 
-                        "Nenhum filme cadastrado. Cadastre filmes primeiro.", Toast.LENGTH_LONG).show();
+        protected void onPostExecute(Void aVoid) {
+            // Configurar Spinner de Filmes
+            if (listaFilmes != null && !listaFilmes.isEmpty()) {
+                List<String> titulosFilmes = new ArrayList<>();
+                for (FilmeModel filme : listaFilmes) {
+                    titulosFilmes.add(filme.getTitulo());
                 }
-                if (listaLocais.isEmpty()) {
-                    Toast.makeText(CrudSessaoActivity.this, 
-                        "Nenhum local cadastrado. Cadastre locais primeiro.", Toast.LENGTH_LONG).show();
-                }
-            } else {
-                Toast.makeText(CrudSessaoActivity.this, 
-                    "Erro ao carregar dados do banco", Toast.LENGTH_SHORT).show();
+                ArrayAdapter<String> adapterFilme = new ArrayAdapter<>(
+                        CrudSessaoActivity.this,
+                        android.R.layout.simple_spinner_item,
+                        titulosFilmes);
+                adapterFilme.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                spinnerFilme.setAdapter(adapterFilme);
             }
+
+            // Configurar Spinner de Locais
+            if (listaLocais != null && !listaLocais.isEmpty()) {
+                List<String> infoLocais = new ArrayList<>();
+                for (LocalModel local : listaLocais) {
+                    infoLocais.add(local.toString());
+                }
+                ArrayAdapter<String> adapterLocal = new ArrayAdapter<>(
+                        CrudSessaoActivity.this,
+                        android.R.layout.simple_spinner_item,
+                        infoLocais);
+                adapterLocal.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                spinnerLocal.setAdapter(adapterLocal);
+            }
+
+            // Atualizar RecyclerView
+            if (listaSessoes != null) {
+                adapter.atualizarLista(listaSessoes);
+            }
+            verificarListaVazia();
         }
     }
 
-    // AsyncTask para salvar sessão no banco
     private class SalvarSessaoTask extends AsyncTask<Void, Void, Boolean> {
-        private Sessao novaSessao;
-        
-        @Override
-        protected void onPreExecute() {
-            // Coletar dados do formulário
-            Date data = parseData(editData.getText().toString());
-            String hora = editHora.getText().toString();
-            int localId = localSelecionado != null ? localSelecionado.getId() : -1;
-            int filmeId = filmeSelecionado != null ? filmeSelecionado.getId() : -1;
+        private final SessaoModel novaSessao;
+        private final FilmeModel filmeSelecionado;
+        private final LocalModel localSelecionado;
 
-            // Criar objeto Sessao
-            novaSessao = new Sessao(data, hora, localId, filmeId);
+        public SalvarSessaoTask(SessaoModel novaSessao, FilmeModel filmeSelecionado, LocalModel localSelecionado) {
+            this.novaSessao = novaSessao;
+            this.filmeSelecionado = filmeSelecionado;
+            this.localSelecionado = localSelecionado;
         }
-        
+
         @Override
         protected Boolean doInBackground(Void... voids) {
             try {
-                sessaoDAO.cadastrarSessaoDAO(novaSessao);
-                sessaoSalva = novaSessao;
+                long result = sessaoDAO.inserirSessao(novaSessao);
+                if (result == -1) return false;
+
+                novaSessao.setId((int) result);
                 return true;
             } catch (Exception e) {
-                Log.e("CrudSessao", "Erro ao salvar sessão: " + e.getMessage());
+                Log.e(TAG, "Erro ao salvar sessão: " + e.getMessage());
                 return false;
             }
         }
-        
+
         @Override
         protected void onPostExecute(Boolean success) {
             if (success) {
-                String mensagem = "Sessão salva no banco!\n" +
-                                 "Filme: " + (filmeSelecionado != null ? filmeSelecionado.getTitulo() : "N/A") + "\n" +
-                                 "Local: " + (localSelecionado != null ? 
-                                         "Bloco " + localSelecionado.getBloco() + " - Sala " + localSelecionado.getSala() : "N/A") + "\n" +
-                                 "Data: " + new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(novaSessao.getData()) + "\n" +
-                                 "Hora: " + novaSessao.getHora();
-                
-                Toast.makeText(CrudSessaoActivity.this, mensagem, Toast.LENGTH_LONG).show();
-                Log.d("CrudSessao", "Sessão salva: " + novaSessao.toString());
-                
-                // Tentar adicionar ao Google Calendar
-                adicionarAoGoogleCalendar();
-                
+                Toast.makeText(CrudSessaoActivity.this, "Sessão salva com sucesso!", Toast.LENGTH_SHORT).show();
+                fecharModal();
+                new CarregarDadosTask().execute();
             } else {
-                Toast.makeText(CrudSessaoActivity.this, 
-                    "Erro ao salvar sessão no banco", Toast.LENGTH_SHORT).show();
+                Toast.makeText(CrudSessaoActivity.this, "Erro ao salvar sessão", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private class ExcluirSessaoTask extends AsyncTask<Integer, Void, Boolean> {
+        @Override
+        protected Boolean doInBackground(Integer... ids) {
+            if (ids.length == 0) return false;
+            try {
+                return sessaoDAO.excluirSessao(ids[0]);
+            } catch (Exception e) {
+                Log.e(TAG, "Erro ao excluir sessão: " + e.getMessage());
+                return false;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Boolean success) {
+            if (success) {
+                Toast.makeText(CrudSessaoActivity.this, "Sessão excluída!", Toast.LENGTH_SHORT).show();
+                new CarregarDadosTask().execute();
+            } else {
+                Toast.makeText(CrudSessaoActivity.this, "Erro ao excluir sessão.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    // ==================== Adapter ====================
+
+    private class SessaoAdapter extends RecyclerView.Adapter<SessaoAdapter.SessaoViewHolder> {
+        private List<SessaoModel> sessoes;
+
+        public SessaoAdapter(List<SessaoModel> sessoes) {
+            this.sessoes = sessoes;
+        }
+
+        public void atualizarLista(List<SessaoModel> novaLista) {
+            this.sessoes = novaLista;
+            notifyDataSetChanged();
+        }
+
+        @NonNull
+        @Override
+        public SessaoViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_sessao, parent, false);
+            return new SessaoViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull SessaoViewHolder holder, int position) {
+            SessaoModel sessao = sessoes.get(position);
+
+            // Buscar filme e local
+            FilmeModel filme = buscarFilmePorId(sessao.getFilme());
+            LocalModel local = buscarLocalPorId(sessao.getLocal());
+
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+
+            holder.txtFilme.setText(filme != null ? filme.getTitulo() : "Filme não encontrado");
+            holder.txtData.setText(sdf.format(sessao.getData()));
+            holder.txtHora.setText(sessao.getHora());
+            holder.txtLocal.setText(local != null ? local.toString() : "Local não encontrado");
+
+            holder.btnExcluir.setOnClickListener(v -> excluirSessao(sessao.getId()));
+        }
+
+        @Override
+        public int getItemCount() {
+            return sessoes != null ? sessoes.size() : 0;
+        }
+
+        private FilmeModel buscarFilmePorId(int id) {
+            if (listaFilmes != null) {
+                for (FilmeModel filme : listaFilmes) {
+                    if (filme.getId() == id) return filme;
+                }
+            }
+            return null;
+        }
+
+        private LocalModel buscarLocalPorId(int id) {
+            if (listaLocais != null) {
+                for (LocalModel local : listaLocais) {
+                    if (local.getId() == id) return local;
+                }
+            }
+            return null;
+        }
+
+        class SessaoViewHolder extends RecyclerView.ViewHolder {
+            TextView txtFilme, txtData, txtHora, txtLocal;
+            ImageButton btnExcluir;
+
+            public SessaoViewHolder(@NonNull View itemView) {
+                super(itemView);
+                txtFilme = itemView.findViewById(R.id.txtFilme);
+                txtData = itemView.findViewById(R.id.txtData);
+                txtHora = itemView.findViewById(R.id.txtHora);
+                txtLocal = itemView.findViewById(R.id.txtLocal);
+                btnExcluir = itemView.findViewById(R.id.btnExcluir);
             }
         }
     }
