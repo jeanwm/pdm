@@ -8,6 +8,9 @@
 # Vídeo do projeto
 https://www.youtube.com/watch?v=U6M_l34Af7A
 
+# Repositório do projeto
+https://github.com/jeanwm/pdm
+
 # ⚙️ Procedimentos de Build e Execução
 
 ## 1. Visão Geral das Configurações do Ambiente
@@ -316,4 +319,5 @@ Métodos Auxiliares de Data:
 - stringToDate(String dataString): Método estático que converte a string do banco ('yyyy-MM-dd') de volta para um objeto java.util.Date. Essencial ao ler os dados do banco para carregar o modelo.
 
 Método toString():
+
 - Retorna um resumo completo da sessão, incluindo data formatada (dd/MM/yyyy) e IDs de Local e Filme. Usado principalmente para depuração.
